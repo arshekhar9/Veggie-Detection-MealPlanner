@@ -8,6 +8,45 @@ interface Profile {
   servings: number;
 }
 
+type InputKey = "dietary" | "cuisine" | "pantry";
+
+interface TagInputProps {
+  label: string;
+  field: InputKey;
+  profileKey: keyof Profile;
+  value: string;
+  tags: string[];
+  onChange: (field: InputKey, val: string) => void;
+  onAdd: (field: InputKey, profileKey: keyof Profile) => void;
+  onRemove: (profileKey: keyof Profile, idx: number) => void;
+}
+
+function TagInput({ label, field, profileKey, value, tags, onChange, onAdd, onRemove }: TagInputProps) {
+  return (
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <div className="flex gap-2 mb-2">
+        <input
+          className="flex-1 border rounded px-2 py-1 text-sm"
+          value={value}
+          onChange={(e) => onChange(field, e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && onAdd(field, profileKey)}
+          placeholder={`Add ${label.toLowerCase()}...`}
+        />
+        <button onClick={() => onAdd(field, profileKey)} className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">+</button>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {tags.map((tag, i) => (
+          <span key={i} className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+            {tag}
+            <button onClick={() => onRemove(profileKey, i)} className="text-green-600 hover:text-red-500">×</button>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ProfileModal({ onClose }: { onClose: () => void }) {
   const [profile, setProfile] = useState<Profile>({
     dietaryRestrictions: [],
@@ -22,7 +61,11 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
     fetch("/api/profile").then((r) => r.json()).then(setProfile);
   }, []);
 
-  const addTag = (field: keyof typeof inputs, profileKey: keyof Profile) => {
+  const handleChange = (field: InputKey, val: string) => {
+    setInputs((i) => ({ ...i, [field]: val }));
+  };
+
+  const addTag = (field: InputKey, profileKey: keyof Profile) => {
     const val = inputs[field].trim();
     if (!val) return;
     setProfile((p) => ({ ...p, [profileKey]: [...(p[profileKey] as string[]), val] }));
@@ -40,37 +83,13 @@ export default function ProfileModal({ onClose }: { onClose: () => void }) {
     onClose();
   };
 
-  const TagInput = ({ label, field, profileKey }: { label: string; field: keyof typeof inputs; profileKey: keyof Profile }) => (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <div className="flex gap-2 mb-2">
-        <input
-          className="flex-1 border rounded px-2 py-1 text-sm"
-          value={inputs[field]}
-          onChange={(e) => setInputs((i) => ({ ...i, [field]: e.target.value }))}
-          onKeyDown={(e) => e.key === "Enter" && addTag(field, profileKey)}
-          placeholder={`Add ${label.toLowerCase()}...`}
-        />
-        <button onClick={() => addTag(field, profileKey)} className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">+</button>
-      </div>
-      <div className="flex flex-wrap gap-1">
-        {(profile[profileKey] as string[]).map((tag, i) => (
-          <span key={i} className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full flex items-center gap-1">
-            {tag}
-            <button onClick={() => removeTag(profileKey, i)} className="text-green-600 hover:text-red-500">×</button>
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
         <h2 className="text-xl font-semibold mb-4 text-gray-800">Your Profile</h2>
-        <TagInput label="Dietary Restrictions" field="dietary" profileKey="dietaryRestrictions" />
-        <TagInput label="Cuisine Preferences" field="cuisine" profileKey="cuisinePreferences" />
-        <TagInput label="Pantry Staples" field="pantry" profileKey="pantryItems" />
+        <TagInput label="Dietary Restrictions" field="dietary" profileKey="dietaryRestrictions" value={inputs.dietary} tags={profile.dietaryRestrictions} onChange={handleChange} onAdd={addTag} onRemove={removeTag} />
+        <TagInput label="Cuisine Preferences" field="cuisine" profileKey="cuisinePreferences" value={inputs.cuisine} tags={profile.cuisinePreferences} onChange={handleChange} onAdd={addTag} onRemove={removeTag} />
+        <TagInput label="Pantry Staples" field="pantry" profileKey="pantryItems" value={inputs.pantry} tags={profile.pantryItems} onChange={handleChange} onAdd={addTag} onRemove={removeTag} />
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-1">Servings</label>
           <input
