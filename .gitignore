@@ -1,0 +1,6 @@
+app/.next/
+app/node_modules/
+app/.env.local
+app/data/
+app/uploads/
+*.swp
